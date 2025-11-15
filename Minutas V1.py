@@ -1,3 +1,12 @@
+import re
+from datetime import datetime
+
+def validar_fecha_ddmmaaaa(texto):
+    texto = texto.strip()
+    patron = r"^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/(19|20)\d\d$"
+    return bool(re.match(patron, texto))
+
+
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, scrolledtext, simpledialog
 from docx import Document
@@ -72,6 +81,8 @@ class SistemaPlantillasPersonalizadas:
         self.cargar_plantillas_guardadas()
     
     def setup_icon(self):
+        # Manejo seguro de icono
+
         try:
             self.root.iconbitmap("law_icon.ico")
         except:
@@ -479,7 +490,10 @@ class SistemaPlantillasPersonalizadas:
         
         if archivo_salida:
             doc.save(archivo_salida)
-            os.startfile(archivo_salida)
+            try:
+                os.startfile(archivo_salida)
+            except Exception:
+                pass  # Evita crash si el SO no soporta startfile
             return True
         return False
     
