@@ -398,20 +398,34 @@ class SistemaPlantillasPersonalizadas:
                 messagebox.showerror("Error", f"No se pudo cargar la minuta: {str(e)}")
     
     def editar_plantilla(self):
+        # Preferir la selección en la lista; si no hay, usar la plantilla activa en el combobox
+        nombre_plantilla = None
         seleccion = self.lista_plantillas.curselection()
         if seleccion:
             nombre_plantilla = self.lista_plantillas.get(seleccion[0])
-            plantilla = self.plantillas_personalizadas.get(nombre_plantilla)
-            
-            if plantilla:
-                editor = EditorPlantillasDesdeMinuta(
-                    self.root, self.carpeta_plantillas, 
-                    plantilla.get('contenido_base', ''), 
-                    plantilla.get('documento_origen', ''),
-                    plantilla_existente=plantilla
-                )
-                self.root.wait_window(editor.ventana)
-                self.cargar_plantillas_guardadas()
+        else:
+            nombre_combo = self.combo_plantillas.get()
+            if nombre_combo in self.plantillas_personalizadas:
+                nombre_plantilla = nombre_combo
+
+        if not nombre_plantilla:
+            messagebox.showwarning("Advertencia", "Seleccione una plantilla (lista o combobox) para editar.")
+            return
+
+        plantilla = self.plantillas_personalizadas.get(nombre_plantilla)
+        if plantilla:
+            editor = EditorPlantillasDesdeMinuta(
+                self.root, self.carpeta_plantillas,
+                plantilla.get('contenido_base', ''),
+                plantilla.get('documento_origen', ''),
+                plantilla_existente=plantilla
+            )
+            self.root.wait_window(editor.ventana)
+            # Recargar plantillas y reactivar la misma plantilla si existe
+            self.cargar_plantillas_guardadas()
+            if nombre_plantilla in self.plantillas_personalizadas:
+                self.combo_plantillas.set(nombre_plantilla)
+                self.cambiar_plantilla()
         else:
             messagebox.showwarning("Advertencia", "Seleccione una plantilla de la lista para editar.")
     
@@ -858,7 +872,9 @@ class EditorPlantillasDesdeMinuta:
             self.texto_minuta.insert("1.0", self.contenido_minuta)
         
         self.texto_minuta.tag_configure("seleccionado", background="lightgreen", foreground="darkgreen")
-        self.texto_minuta.bind("<<Selection>>", self.guardar_seleccion_actual)
+        # Detectar selección usando eventos de ratón y teclado (<<Selection>> no siempre se dispara)
+        self.texto_minuta.bind("<ButtonRelease-1>", self.guardar_seleccion_actual)
+        self.texto_minuta.bind("<KeyRelease>", self.guardar_seleccion_actual)
         
         # Panel derecho - Configuración de campos
         right_panel = ttk.LabelFrame(workspace_frame, text="⚙️ Configuración de Campos Personalizados", padding="15")
@@ -945,14 +961,31 @@ class EditorPlantillasDesdeMinuta:
     # Los métodos de funcionalidad se mantienen igual...
     def guardar_seleccion_actual(self, event=None):
         try:
+            # Obtener rangos reales de la selección y almacenarlos como índices de texto
             if self.texto_minuta.tag_ranges(tk.SEL):
-                self.texto_seleccionado_actual = self.texto_minuta.get(tk.SEL_FIRST, tk.SEL_LAST)
-                self.posicion_seleccion_actual = (tk.SEL_FIRST, tk.SEL_LAST)
-        except:
+                inicio = self.texto_minuta.index(tk.SEL_FIRST)
+                fin = self.texto_minuta.index(tk.SEL_LAST)
+                self.texto_seleccionado_actual = self.texto_minuta.get(inicio, fin)
+                self.posicion_seleccion_actual = (inicio, fin)
+            else:
+                self.texto_seleccionado_actual = None
+                self.posicion_seleccion_actual = None
+        except Exception:
             self.texto_seleccionado_actual = None
             self.posicion_seleccion_actual = None
     
     def crear_campo_desde_seleccion(self):
+        # Si no había seleccionado previamente, intentar leer la selección actual del widget
+        if not self.texto_seleccionado_actual:
+            try:
+                if self.texto_minuta.tag_ranges(tk.SEL):
+                    inicio = self.texto_minuta.index(tk.SEL_FIRST)
+                    fin = self.texto_minuta.index(tk.SEL_LAST)
+                    self.texto_seleccionado_actual = self.texto_minuta.get(inicio, fin)
+                    self.posicion_seleccion_actual = (inicio, fin)
+            except Exception:
+                self.texto_seleccionado_actual = None
+
         if not self.texto_seleccionado_actual:
             messagebox.showwarning("Advertencia", "Primero seleccione texto en la minuta.")
             return
