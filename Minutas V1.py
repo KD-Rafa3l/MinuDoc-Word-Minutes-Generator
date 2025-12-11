@@ -1,22 +1,18 @@
 import re
 from datetime import datetime
-
-def validar_fecha_ddmmaaaa(texto):
-    texto = texto.strip()
-    patron = r"^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/(19|20)\d\d$"
-    return bool(re.match(patron, texto))
-
-
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, scrolledtext, simpledialog
 from docx import Document
 from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 import os
-import re
-from datetime import datetime
 import json
 from pathlib import Path
+
+def validar_fecha_ddmmaaaa(texto):
+    texto = texto.strip()
+    patron = r"^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/(19|20)\d\d$"
+    return bool(re.match(patron, texto))
 
 class ScrollableFrame(ttk.Frame):
     """Frame scrollable vertical y horizontalmente"""
