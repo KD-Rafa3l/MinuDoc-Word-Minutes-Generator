@@ -1,58 +1,162 @@
 import re
 from datetime import datetime
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, scrolledtext, simpledialog
-from docx import Document
-from docx.shared import Inches, Pt
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-import os
-import json
-from pathlib import Path
 
 def validar_fecha_ddmmaaaa(texto):
     texto = texto.strip()
     patron = r"^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/(19|20)\d\d$"
     return bool(re.match(patron, texto))
 
+
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox, scrolledtext, simpledialog
+from docx import Document
+from docx.shared import Inches, Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+import os
+import re
+from datetime import datetime
+import json
+from pathlib import Path
+
+def aplicar_tema_moderno(root):
+    style = ttk.Style(root)
+    style.theme_use("clam")
+
+    BG = "#f7f7f7"
+    PANEL = "#ffffff"
+    TEXT = "#474449"
+    SUBTEXT = "#6b6b6b"
+    BORDER = "#e0e0e0"
+    BTN_BG = "#ffffff"
+    BTN_BG_HOVER = "#f0f0f0"
+
+    root.configure(bg=BG)
+
+    style.configure(".", background=BG, foreground=TEXT, font=("Segoe UI", 10))
+    style.configure("TFrame", background=BG)
+    style.configure("TLabelFrame", background=BG, relief="solid", borderwidth=1, bordercolor=BORDER)
+    style.configure("TLabelFrame.Label", background=BG, foreground=TEXT, font=("Segoe UI", 11, "bold"))
+    style.configure("TLabel", background=BG, foreground=TEXT)
+    style.configure("TEntry", relief="flat", borderwidth=1)
+    style.configure("TCombobox", relief="flat", borderwidth=1)
+
+    style.configure(
+        "Notion.TButton",
+        background=BTN_BG,
+        foreground=TEXT,
+        padding=10,
+        borderwidth=1,
+        relief="flat"
+    )
+    style.map(
+        "Notion.TButton",
+        background=[("active", BTN_BG_HOVER)],
+        foreground=[("active", TEXT)]
+    )
+
+    style.configure("TNotebook", background=BG, borderwidth=0)
+    style.configure("TNotebook.Tab", background=PANEL, foreground=TEXT, padding=[12, 8])
+    style.map("TNotebook.Tab",
+              background=[("selected", "#2563eb")],
+              foreground=[("selected", "#ffffff")])
+
+
+def aplicar_tema_oscuro(root):
+    style = ttk.Style(root)
+    style.theme_use("clam")
+
+    BG = "#1e1e1e"
+    PANEL = "#262626"
+    TEXT = "#e5e5e5"
+    SUB = "#a1a1a1"
+    BORDER = "#333333"
+    BTN_BG = "#2d2d2d"
+    BTN_BG_HOVER = "#3a3a3a"
+
+    root.configure(bg=BG)
+
+    style.configure(".", background=BG, foreground=TEXT, font=("Segoe UI", 10))
+    style.configure("TFrame", background=BG)
+    style.configure("TLabelFrame", background=BG, relief="solid", borderwidth=1, bordercolor=BORDER)
+    style.configure("TLabelFrame.Label", background=BG, foreground=TEXT, font=("Segoe UI", 11, "bold"))
+    style.configure("TLabel", background=BG, foreground=TEXT)
+    style.configure("TEntry", relief="flat", borderwidth=1, fieldbackground=PANEL, foreground=TEXT, insertcolor=TEXT)
+    style.configure("TCombobox", relief="flat", borderwidth=1, fieldbackground=PANEL, background=PANEL, foreground=TEXT)
+
+    style.configure(
+        "Notion.TButton",
+        background=BTN_BG,
+        foreground=TEXT,
+        padding=10,
+        borderwidth=1,
+        relief="flat"
+    )
+    style.map(
+        "Notion.TButton",
+        background=[("active", BTN_BG_HOVER)],
+        foreground=[("active", TEXT)]
+    )
+
+    style.configure("TNotebook", background=BG, borderwidth=0)
+    style.configure("TNotebook.Tab", background=PANEL, foreground=TEXT, padding=[12, 8])
+    style.map("TNotebook.Tab",
+              background=[("selected", BTN_BG)],
+              foreground=[("selected", TEXT)])
+
+
 class ScrollableFrame(ttk.Frame):
-    """Frame scrollable vertical y horizontalmente"""
     def __init__(self, container, *args, **kwargs):
         super().__init__(container, *args, **kwargs)
-        
-        # Crear canvas y scrollbars
+
+        # Canvas y scrollbar vertical (pack para integrarse con padres que usan pack)
         self.canvas = tk.Canvas(self, highlightthickness=0)
         self.v_scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
         self.h_scrollbar = ttk.Scrollbar(self, orient="horizontal", command=self.canvas.xview)
-        
-        # Configurar canvas
-        self.canvas.configure(yscrollcommand=self.v_scrollbar.set, xscrollcommand=self.h_scrollbar.set)
-        
-        # Frame interior que contendrá todos los widgets
-        self.scrollable_frame = ttk.Frame(self.canvas)
-        self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-        )
-        
-        # Crear ventana en el canvas para el frame scrollable
-        self.canvas_frame = self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
-        
-        # Configurar el cambio de tamaño
-        self.scrollable_frame.bind("<Configure>", self._on_frame_configure)
-        self.canvas.bind("<Configure>", self._on_canvas_configure)
-        
-        # Empaquetar widgets
-        self.canvas.pack(side="left", fill="both", expand=True)
+
+        # Layout: scrollbar derecha, canvas ocupa resto y scrollbar horizontal abajo
         self.v_scrollbar.pack(side="right", fill="y")
-        self.h_scrollbar.pack(side="bottom", fill="x")
-        
-    def _on_frame_configure(self, event=None):
-        """Actualizar scrollregion cuando cambia el tamaño del frame"""
-        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-        
-    def _on_canvas_configure(self, event):
-        """Ajustar el ancho del frame interior al canvas"""
-        self.canvas.itemconfig(self.canvas_frame, width=event.width)
+        self.canvas.pack(side="left", fill="both", expand=True)
+
+        # Conectar scrollbars
+        self.canvas.configure(yscrollcommand=self.v_scrollbar.set, xscrollcommand=self.h_scrollbar.set)
+
+        # Frame interior donde se colocarán los widgets
+        self.scrollable_frame = ttk.Frame(self.canvas)
+        self.canvas_frame = self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+
+        # Actualizar scrollregion cuando cambie el contenido interior
+        self.scrollable_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+
+        # Ajustar el ancho del frame interior al ancho del canvas (evita horizontales innecesarias)
+        def _on_canvas_configure(event):
+            try:
+                self.canvas.itemconfig(self.canvas_frame, width=event.width)
+                self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+            except Exception:
+                pass
+        self.canvas.bind("<Configure>", _on_canvas_configure)
+
+        # Soporte rueda del ratón
+        self._bind_mousewheel()
+
+    def _on_mousewheel_windows(self, event):
+        self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    def _on_mousewheel_darwin(self, event):
+        self.canvas.yview_scroll(int(-1 * event.delta), "units")
+
+    def _on_mousewheel_linux_up(self, event):
+        self.canvas.yview_scroll(-1, "units")
+
+    def _on_mousewheel_linux_down(self, event):
+        self.canvas.yview_scroll(1, "units")
+
+    def _bind_mousewheel(self):
+        # Vincular la rueda globalmente para que funcione cuando el cursor esté en la ventana
+        self.canvas.bind_all("<MouseWheel>", lambda e: self._on_mousewheel_windows(e), add="+")
+        self.canvas.bind_all("<Button-4>", lambda e: self._on_mousewheel_linux_up(e), add="+")
+        self.canvas.bind_all("<Button-5>", lambda e: self._on_mousewheel_linux_down(e), add="+")
+
 
 class SistemaPlantillasPersonalizadas:
     def __init__(self):
@@ -84,148 +188,112 @@ class SistemaPlantillasPersonalizadas:
         except:
             pass
     
+
     def configurar_interfaz(self):
-        # Configurar estilo
-        self.configurar_estilos()
-        
-        # Frame principal con scroll
-        self.main_scrollable = ScrollableFrame(self.root)
-        self.main_scrollable.pack(fill="both", expand=True)
-        
-        # Contenido principal dentro del frame scrollable
-        main_content = ttk.Frame(self.main_scrollable.scrollable_frame, padding="20")
-        main_content.pack(fill="both", expand=True)
-        
-        # Header
-        header_frame = ttk.Frame(main_content)
-        header_frame.pack(fill="x", pady=(0, 20))
-        
-        titulo = ttk.Label(header_frame, 
-                          text="⚖️ SISTEMA DE PLANTILLAS PARA MINUTAS JURÍDICAS", 
-                          font=("Arial", 18, "bold"),
-                          foreground="#2c3e50")
-        titulo.pack(pady=10)
-        
-        subtitulo = ttk.Label(header_frame,
-                             text="Gestión completa de plantillas personalizadas para documentos jurídicos",
-                             font=("Arial", 11),
-                             foreground="#7f8c8d")
-        subtitulo.pack()
-        
-        # Panel de herramientas rápidas
-        quick_tools = ttk.LabelFrame(main_content, text="Acciones Rápidas", padding="15")
-        quick_tools.pack(fill="x", pady=(0, 15))
-        
-        # Grid de botones principales
-        tools_grid = ttk.Frame(quick_tools)
-        tools_grid.pack(fill="x")
-        
-        # Fila 1
-        ttk.Button(tools_grid, 
-                  text="🆕 Crear Nueva Plantilla", 
-                  command=self.crear_plantilla_desde_minuta,
-                  width=22).grid(row=0, column=0, padx=5, pady=5)
-        
-        ttk.Button(tools_grid, 
-                  text="📝 Editar Plantilla", 
-                  command=self.editar_plantilla,
-                  width=20).grid(row=0, column=1, padx=5, pady=5)
-        
-        ttk.Button(tools_grid, 
-                  text="🔄 Generar Minuta", 
-                  command=self.generar_minuta,
-                  width=20).grid(row=0, column=2, padx=5, pady=5)
-        
-        ttk.Button(tools_grid, 
-                  text="📥 Importar", 
-                  command=self.importar_plantilla,
-                  width=15).grid(row=0, column=3, padx=5, pady=5)
-        
-        # Fila 2
-        ttk.Button(tools_grid, 
-                  text="📤 Exportar", 
-                  command=self.exportar_plantilla,
-                  width=15).grid(row=1, column=0, padx=5, pady=5)
-        
-        ttk.Button(tools_grid, 
-                  text="👁️ Ver Detalles", 
-                  command=self.ver_detalles_plantilla,
-                  width=15).grid(row=1, column=1, padx=5, pady=5)
-        
-        ttk.Button(tools_grid, 
-                  text="🧹 Limpiar Todo", 
-                  command=self.limpiar_formulario,
-                  width=15).grid(row=1, column=2, padx=5, pady=5)
-        
-        ttk.Button(tools_grid, 
-                  text="🗑️ Eliminar", 
-                  command=self.eliminar_plantilla_activa,
-                  width=15).grid(row=1, column=3, padx=5, pady=5)
-        
-        # Panel de control de plantillas
-        control_frame = ttk.LabelFrame(main_content, text="Control de Plantillas Activas", padding="15")
-        control_frame.pack(fill="x", pady=(0, 15))
-        
-        control_grid = ttk.Frame(control_frame)
-        control_grid.pack(fill="x")
-        
-        # Selector de plantilla
-        ttk.Label(control_grid, 
-                 text="Plantilla Activa:", 
-                 font=("Arial", 11, "bold")).grid(row=0, column=0, sticky="w", padx=(0, 10))
-        
-        self.combo_plantillas = ttk.Combobox(control_grid, 
-                                            width=35, 
-                                            state="readonly", 
-                                            font=("Arial", 10))
-        self.combo_plantillas.grid(row=0, column=1, sticky="w", padx=(0, 20))
+        aplicar_tema_moderno(self.root)
+        self.modo_oscuro = False
+
+        cont = ttk.Frame(self.root, padding=40)
+        cont.pack(fill="both", expand=True)
+
+        header = ttk.Frame(cont)
+        header.pack(fill="x", pady=(0, 25))
+
+        titulo = ttk.Label(
+            header,
+            text="SISTEMA DE PLANTILLAS PARA MINUTAS JURÍDICAS",
+            font=("Segoe UI", 22, "bold")
+        )
+        titulo.pack(anchor="w", pady=4)
+
+        subtitulo = ttk.Label(
+            header,
+            text="Gestione, edite y genere minutas jurídicas de forma organizada y moderna.",
+            font=("Segoe UI", 11)
+        )
+        subtitulo.pack(anchor="w")
+
+        def toggle_dark():
+            self.modo_oscuro = not self.modo_oscuro
+            if self.modo_oscuro:
+                aplicar_tema_oscuro(self.root)
+                self.status_var.set("Modo oscuro activado")
+            else:
+                aplicar_tema_moderno(self.root)
+                self.status_var.set("Modo claro activado")
+
+        ttk.Button(
+            header,
+            text="Modo oscuro",
+            style="Notion.TButton",
+            command=toggle_dark
+        ).pack(anchor="e", pady=5)
+
+        quick = ttk.Frame(cont)
+        quick.pack(fill="x", pady=(10, 25))
+
+        fila1 = ttk.Frame(quick)
+        fila1.pack(pady=5)
+
+        ttk.Button(fila1, text="Crear nueva plantilla", style="Notion.TButton",
+                   command=self.crear_plantilla_desde_minuta).pack(side="left", padx=6)
+        ttk.Button(fila1, text="Editar plantilla", style="Notion.TButton",
+                   command=self.editar_plantilla).pack(side="left", padx=6)
+        ttk.Button(fila1, text="Generar minuta", style="Notion.TButton",
+                   command=self.generar_minuta).pack(side="left", padx=6)
+
+        fila2 = ttk.Frame(quick)
+        fila2.pack(pady=5)
+
+        ttk.Button(fila2, text="Importar", style="Notion.TButton",
+                   command=self.importar_plantilla).pack(side="left", padx=6)
+        ttk.Button(fila2, text="Exportar", style="Notion.TButton",
+                   command=self.exportar_plantilla).pack(side="left", padx=6)
+        ttk.Button(fila2, text="Limpiar", style="Notion.TButton",
+                   command=self.limpiar_formulario).pack(side="left", padx=6)
+        ttk.Button(fila2, text="Eliminar", style="Notion.TButton",
+                   command=self.eliminar_plantilla_activa).pack(side="left", padx=6)
+
+        active = ttk.LabelFrame(cont, text="Plantilla activa", padding=20)
+        active.pack(fill="x", pady=(10, 25))
+
+        filaA = ttk.Frame(active)
+        filaA.pack(fill="x")
+
+        ttk.Label(filaA, text="Plantilla actual:", font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="w")
+
+        self.combo_plantillas = ttk.Combobox(filaA, width=35, state="readonly", font=("Segoe UI", 10))
+        self.combo_plantillas.grid(row=0, column=1, padx=15)
         self.combo_plantillas.bind('<<ComboboxSelected>>', self.cambiar_plantilla)
-        
-        # Información de la plantilla
-        ttk.Label(control_grid, 
-                 text="Descripción:", 
-                 font=("Arial", 11)).grid(row=0, column=2, sticky="w", padx=(0, 10))
-        
-        self.label_descripcion = ttk.Label(control_grid, 
-                                          text="Ninguna plantilla seleccionada", 
-                                          foreground="#2980b9", 
-                                          font=("Arial", 10))
+
+        ttk.Label(filaA, text="Descripción:", font=("Segoe UI", 10)).grid(row=0, column=2, padx=(10, 5))
+        self.label_descripcion = ttk.Label(filaA, text="Ninguna plantilla seleccionada")
         self.label_descripcion.grid(row=0, column=3, sticky="w")
-        
-        # Área de trabajo principal con pestañas
-        notebook_frame = ttk.Frame(main_content)
-        notebook_frame.pack(fill="both", expand=True)
-        
-        self.notebook = ttk.Notebook(notebook_frame)
+
+        notebook_container = ttk.Frame(cont)
+        notebook_container.pack(fill="both", expand=True)
+
+        self.notebook = ttk.Notebook(notebook_container)
         self.notebook.pack(fill="both", expand=True)
-        
-        # Pestaña 1: Formulario de Datos
-        self.tab_formulario = ttk.Frame(self.notebook, padding="10")
-        self.notebook.add(self.tab_formulario, text="📋 Formulario de Datos")
+
+        self.tab_formulario = ttk.Frame(self.notebook)
+        self.notebook.add(self.tab_formulario, text="Formulario")
         self.configurar_tab_formulario()
-        
-        # Pestaña 2: Vista Previa
-        self.tab_vista_previa = ttk.Frame(self.notebook, padding="10")
-        self.notebook.add(self.tab_vista_previa, text="👁️ Vista Previa")
+
+        self.tab_vista_previa = ttk.Frame(self.notebook)
+        self.notebook.add(self.tab_vista_previa, text="Vista previa")
         self.configurar_tab_vista_previa()
-        
-        # Pestaña 3: Gestión de Plantillas
-        self.tab_plantillas = ttk.Frame(self.notebook, padding="10")
-        self.notebook.add(self.tab_plantillas, text="📁 Gestión de Plantillas")
+
+        self.tab_plantillas = ttk.Frame(self.notebook)
+        self.notebook.add(self.tab_plantillas, text="Gestión")
         self.configurar_tab_plantillas()
-        
-        # Barra de estado
-        status_frame = ttk.Frame(main_content)
-        status_frame.pack(fill="x", pady=(15, 0))
-        
+
+        status_frame = ttk.Frame(cont)
+        status_frame.pack(fill="x", pady=(20, 0))
+
         self.status_var = tk.StringVar(value="Sistema listo - Seleccione o cree una plantilla para comenzar")
-        status_bar = ttk.Label(status_frame, 
-                              textvariable=self.status_var, 
-                              relief=tk.SUNKEN, 
-                              font=("Arial", 9),
-                              background="#f8f9fa")
-        status_bar.pack(fill="x")
-    
+        ttk.Label(status_frame, textvariable=self.status_var).pack(fill="x")
+
     def configurar_estilos(self):
         """Configurar estilos visuales"""
         style = ttk.Style()
@@ -234,143 +302,191 @@ class SistemaPlantillasPersonalizadas:
         style.configure("TEntry", font=("Arial", 10))
         style.configure("TCombobox", font=("Arial", 10))
     
+
     def configurar_tab_formulario(self):
-        # Frame principal con scroll
-        form_scrollable = ScrollableFrame(self.tab_formulario)
-        form_scrollable.pack(fill="both", expand=True)
+        cont = ttk.Frame(self.tab_formulario, padding=25)
+        cont.pack(fill="both", expand=True)
+
+        info = ttk.LabelFrame(cont, text="Plantilla activa", padding=1)
+        info.pack(fill="x", pady=(0, 10))
+
+        # Cambiar a grid para el frame principal de info
+        fila = ttk.Frame(info)
+        fila.pack(fill="x")
+
+        self.label_info_nombre = ttk.Label(fila, text="Nombre: -", font=("Segoe UI", 11, "bold"))
+        self.label_info_nombre.pack(side="left", padx=(0, 10))
+
+        self.label_info_campos = ttk.Label(fila, text="Campos: 0", font=("Segoe UI", 10))
+        self.label_info_campos.pack(side="left", padx=(0, 60))
+
+        self.label_info_desc = ttk.Label(fila, text="Descripción: -", font=("Segoe UI", 10))
+        self.label_info_desc.pack(side="left")
+
+        # Botones rápidos relacionados al formulario (generar Word / vista previa)
+        acciones_form = ttk.Frame(fila)  # Cambiado: ahora es hijo de fila
+        acciones_form.pack(side="right", padx=(10, 0))  # Usar pack en lugar de grid
+
+        ttk.Button(
+            acciones_form,
+            text="🖨️ Generar Word",
+            style="Notion.TButton",
+            command=self.generar_minuta
+        ).pack(side="left", padx=4)  # Usar pack en lugar de side="right"
+
+        ttk.Button(
+            acciones_form,
+            text="👁️ Vista previa",
+            style="Notion.TButton",
+            command=lambda: self.notebook.select(1)
+        ).pack(side="left", padx=4)  # Usar pack en lugar de side="right"
+
+        form_panel = ttk.LabelFrame(cont, text="Campos", padding=10)
+        form_panel.pack(fill="both", expand=True)
+
+        # Forzar layout con grid para que "Campos" y su scrollbar ocupen TODO el espacio
+        form_panel.grid_rowconfigure(0, weight=1)
+        form_panel.grid_columnconfigure(0, weight=1)
+
+        wrapper = ttk.Frame(form_panel)
+        wrapper.grid(row=0, column=0, sticky="nsew")             # usar grid en el padre
+        wrapper.grid_rowconfigure(0, weight=1)
+        wrapper.grid_columnconfigure(0, weight=1)
+
+        # Contenedor scrollable (canvas + scrollbar) dentro del wrapper
+        self.frame_campos_container = ScrollableFrame(wrapper)
+        self.frame_campos_container.grid(row=0, column=0, sticky="nsew")
+
         
-        form_content = ttk.Frame(form_scrollable.scrollable_frame)
-        form_content.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        # Información de la plantilla
-        info_frame = ttk.LabelFrame(form_content, text="Información de la Plantilla Activa", padding="15")
-        info_frame.pack(fill="x", pady=(0, 15))
-        
-        info_grid = ttk.Frame(info_frame)
-        info_grid.pack(fill="x")
-        
-        self.label_info_nombre = ttk.Label(info_grid, text="Nombre: -", font=("Arial", 11, "bold"))
-        self.label_info_nombre.grid(row=0, column=0, sticky="w", pady=5, padx=(0, 30))
-        
-        self.label_info_campos = ttk.Label(info_grid, text="Campos: 0", font=("Arial", 10))
-        self.label_info_campos.grid(row=0, column=1, sticky="w", pady=5, padx=(0, 30))
-        
-        self.label_info_desc = ttk.Label(info_grid, text="Descripción: -", font=("Arial", 10))
-        self.label_info_desc.grid(row=0, column=2, sticky="w", pady=5)
-        
-        # Área de campos del formulario
-        campos_frame = ttk.LabelFrame(form_content, text="Campos a Completar", padding="15")
-        campos_frame.pack(fill="both", expand=True)
-        
-        # Frame para campos (sin scroll adicional aquí, ya que el padre tiene scroll)
-        self.frame_campos = ttk.Frame(campos_frame)
-        self.frame_campos.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        # Mensaje inicial
-        self.label_form_vacio = ttk.Label(self.frame_campos, 
-                                         text="Seleccione una plantilla para cargar el formulario correspondiente\n\n"
-                                              "Use el botón 'Crear Nueva Plantilla' para comenzar",
-                                         font=("Arial", 12), 
-                                         foreground="gray", 
-                                         justify="center")
-        self.label_form_vacio.pack(pady=80)
-    
+        # Forzar recalculo del canvas cuando wrapper cambie de tamaño
+        def _on_wrapper_configure(event):
+            try:
+                c = self.frame_campos_container.canvas
+                c.update_idletasks()
+                bbox = c.bbox("all")
+                if bbox:
+                    c.configure(scrollregion=bbox)
+            except Exception:
+                pass
+        wrapper.bind("<Configure>", _on_wrapper_configure)
+         
+         # El frame donde realmente se colocan los widgets (usar en el resto del código)
+        self.frame_campos = self.frame_campos_container.scrollable_frame
+
+        self.label_form_vacio = ttk.Label(
+            self.frame_campos,
+            text="No hay plantilla activa.\nSeleccione una desde arriba.",
+            font=("Segoe UI", 12),
+            foreground="#7a7a7a",
+            justify="center"
+        )
+        self.label_form_vacio.pack(pady=3)
+
+
     def configurar_tab_vista_previa(self):
-        # Frame principal
-        main_preview_frame = ttk.Frame(self.tab_vista_previa)
-        main_preview_frame.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        # Controles de vista previa
-        preview_controls = ttk.Frame(main_preview_frame)
-        preview_controls.pack(fill="x", pady=(0, 10))
-        
-        ttk.Label(preview_controls, 
-                 text="Vista Previa de la Minuta Generada", 
-                 font=("Arial", 14, "bold")).pack(side="left")
-        
-        ttk.Button(preview_controls, 
-                  text="🖨️ Generar Documento Word", 
-                  command=self.generar_minuta,
-                  width=20).pack(side="right")
-        
-        # Área de texto para vista previa
-        preview_frame = ttk.LabelFrame(main_preview_frame, text="Contenido de la Minuta", padding="10")
-        preview_frame.pack(fill="both", expand=True)
-        
+        cont = ttk.Frame(self.tab_vista_previa, padding=25)
+        cont.pack(fill="both", expand=True)
+
+        title = ttk.Frame(cont)
+        title.pack(fill="x", pady=(0, 20))
+
+        ttk.Label(
+            title,
+            text="Vista previa de minuta",
+            font=("Segoe UI", 16, "bold")
+        ).pack(side="left")
+
+        # Botón principal para generar la minuta (reemplaza marcadores y muestra vista previa)
+        ttk.Button(
+            title,
+            text="Generar minuta",
+            style="Notion.TButton",
+            command=self.generar_minuta
+        ).pack(side="right", padx=6)
+
+        # Botón adicional: guarda directamente el contenido de la vista previa en .docx
+        ttk.Button(
+            title,
+            text="Guardar Word (vista previa)",
+            style="Notion.TButton",
+            command=self.guardar_word_desde_vista
+        ).pack(side="right", padx=6)
+
+        prev = ttk.LabelFrame(cont, text="Contenido generado", padding=20)
+        prev.pack(fill="both", expand=True)
+
         self.texto_vista_previa = scrolledtext.ScrolledText(
-            preview_frame, 
-            wrap=tk.WORD, 
-            font=("Courier New", 11),
-            padx=10,
-            pady=10
+            prev,
+            wrap="word",
+            font=("Consolas", 11),
+            background="#ffffff",
+            padx=15,
+            pady=15,
+            relief="flat",
+            borderwidth=1
         )
         self.texto_vista_previa.pack(fill="both", expand=True)
-        self.texto_vista_previa.insert(tk.END, "Complete el formulario y genere la minuta para ver la vista previa aquí...")
-    
+
+        self.texto_vista_previa.insert("1.0", "Aún no has generado la minuta.")
+
+
     def configurar_tab_plantillas(self):
-        # Frame principal
-        main_management_frame = ttk.Frame(self.tab_plantillas)
-        main_management_frame.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        # Lista de plantillas
-        lista_frame = ttk.LabelFrame(main_management_frame, text="Plantillas Disponibles", padding="15")
-        lista_frame.pack(fill="both", expand=True, pady=(0, 15))
-        
-        # Controles de lista
-        list_controls = ttk.Frame(lista_frame)
-        list_controls.pack(fill="x", pady=(0, 10))
-        
-        ttk.Label(list_controls, 
-                 text="Seleccione una plantilla para gestionar:", 
-                 font=("Arial", 11)).pack(side="left")
-        
-        # Frame para lista y scroll
-        list_container = ttk.Frame(lista_frame)
-        list_container.pack(fill="both", expand=True)
-        
-        self.lista_plantillas = tk.Listbox(list_container, height=12, font=("Arial", 11))
+        cont = ttk.Frame(self.tab_plantillas, padding=25)
+        cont.pack(fill="both", expand=True)
+
+        lista_panel = ttk.LabelFrame(cont, text="Plantillas disponibles", padding=20)
+        lista_panel.pack(fill="both", expand=True, pady=(0, 25))
+
+        top = ttk.Frame(lista_panel)
+        top.pack(fill="x", pady=(0, 15))
+
+        ttk.Label(top, text="Seleccione una plantilla").pack(side="left")
+
+        listado = ttk.Frame(lista_panel)
+        listado.pack(fill="both", expand=True)
+
+        self.lista_plantillas = tk.Listbox(
+            listado,
+            height=10,
+            font=("Segoe UI", 11),
+            borderwidth=0,
+            highlightthickness=1,
+            relief="flat"
+        )
         self.lista_plantillas.pack(side="left", fill="both", expand=True)
-        
-        scroll_lista = ttk.Scrollbar(list_container, orient="vertical", command=self.lista_plantillas.yview)
-        scroll_lista.pack(side="right", fill="y")
-        self.lista_plantillas.configure(yscrollcommand=scroll_lista.set)
-        
-        # Botones de gestión
-        botones_frame = ttk.Frame(lista_frame)
-        botones_frame.pack(fill="x", pady=(10, 0))
-        
-        ttk.Button(botones_frame, 
-                  text="👁️ Ver Detalles Completos", 
-                  command=self.ver_detalles_plantilla,
-                  width=20).pack(side="left", padx=(0, 10))
-        
-        ttk.Button(botones_frame, 
-                  text="📝 Editar Plantilla", 
-                  command=self.editar_plantilla,
-                  width=15).pack(side="left", padx=(0, 10))
-        
-        ttk.Button(botones_frame, 
-                  text="📊 Probar Plantilla", 
-                  command=self.probar_plantilla,
-                  width=15).pack(side="left")
-        
-        # Panel de detalles
-        detalles_frame = ttk.LabelFrame(main_management_frame, text="Detalles de la Plantilla Seleccionada", padding="15")
-        detalles_frame.pack(fill="x")
-        
+
+        scroll = ttk.Scrollbar(listado, orient="vertical", command=self.lista_plantillas.yview)
+        scroll.pack(side="right", fill="y")
+        self.lista_plantillas.configure(yscrollcommand=scroll.set)
+
+        botones = ttk.Frame(lista_panel)
+        botones.pack(fill="x", pady=15)
+
+        ttk.Button(botones, text="Ver detalles", style="Notion.TButton",
+                   command=self.ver_detalles_plantilla).pack(side="left", padx=8)
+        ttk.Button(botones, text="Editar", style="Notion.TButton",
+                   command=self.editar_plantilla).pack(side="left", padx=8)
+        ttk.Button(botones, text="Probar", style="Notion.TButton",
+                   command=self.probar_plantilla).pack(side="left", padx=8)
+
+        detalles = ttk.LabelFrame(cont, text="Detalles", padding=20)
+        detalles.pack(fill="x")
+
         self.texto_detalles = scrolledtext.ScrolledText(
-            detalles_frame, 
-            wrap=tk.WORD, 
+            detalles,
+            wrap="word",
             height=8,
-            font=("Arial", 10),
-            padx=10,
-            pady=10
+            font=("Segoe UI", 10),
+            background="#ffffff",
+            relief="flat",
+            borderwidth=1,
+            padx=15,
+            pady=15
         )
         self.texto_detalles.pack(fill="both", expand=True)
-        self.texto_detalles.insert(tk.END, "Seleccione una plantilla de la lista para ver sus detalles completos...")
 
-    # ===== MÉTODOS DE FUNCIONALIDAD (MANTENIDOS) =====
-    
+        self.texto_detalles.insert("1.0", "Seleccione una plantilla para ver sus detalles.")
+
     def crear_plantilla_desde_minuta(self):
         archivo = filedialog.askopenfilename(
             title="Seleccionar minuta base para crear plantilla",
@@ -507,6 +623,14 @@ class SistemaPlantillasPersonalizadas:
             return True
         return False
     
+    def guardar_word_desde_vista(self):
+        """Guardar el contenido actual de la vista previa en un .docx."""
+        contenido = self.texto_vista_previa.get("1.0", tk.END).strip()
+        if not contenido:
+            messagebox.showwarning("Advertencia", "No hay contenido en la vista previa para guardar.")
+            return
+        self.generar_documento_word(contenido)
+    
     def aplicar_formato_apa(self, doc):
         sections = doc.sections
         for section in sections:
@@ -551,17 +675,36 @@ class SistemaPlantillasPersonalizadas:
         nombre_plantilla = self.combo_plantillas.get()
         if nombre_plantilla in self.plantillas_personalizadas:
             self.plantilla_activa = self.plantillas_personalizadas[nombre_plantilla]
+            # DEBUG: mostrar en consola cuántos campos trae la plantilla activa
+            campos = self.plantilla_activa.get('campos_personalizados', [])
+            print(f"[DEBUG] cambiar_plantilla -> '{nombre_plantilla}' cargada. campos_personalizados: {len(campos)}")
+            # Siempre mostrar el formulario cuando se cambie de plantilla
             self.cargar_formulario_plantilla()
             self.actualizar_info_plantilla()
+            if hasattr(self, "notebook"):
+                self.notebook.select(0)
             self.status_var.set(f"✅ Plantilla activa: {nombre_plantilla}")
     
     def cargar_formulario_plantilla(self):
+        # DEBUG: confirmar entrada a la función y contenido de plantilla_activa
+        print(f"[DEBUG] cargar_formulario_plantilla llamado. plantilla_activa presente: {self.plantilla_activa is not None}")
+        if self.plantilla_activa is not None:
+            print(f"[DEBUG] campos_personalizados (preview): {self.plantilla_activa.get('campos_personalizados', [])[:3]}")
         for widget in self.frame_campos.winfo_children():
             widget.destroy()
         
         self.campos_ui = {}
         
         if not self.plantilla_activa:
+            # Forzar actualización del scrollregion (vacío)
+            if hasattr(self, 'frame_campos_container'):
+                try:
+                    c = self.frame_campos_container.canvas
+                    c.update_idletasks()
+                    c.configure(scrollregion=c.bbox("all"))
+                    c.yview_moveto(0.0)
+                except Exception:
+                    pass
             return
         
         campos = self.plantilla_activa.get('campos_personalizados', [])
@@ -571,10 +714,32 @@ class SistemaPlantillasPersonalizadas:
                                              text="Esta plantilla no tiene campos personalizados definidos",
                                              font=("Arial", 11), foreground="gray")
             self.label_form_vacio.pack(pady=50)
+            # Actualizar scrollregion cuando hay sólo el mensaje vacío
+            if hasattr(self, 'frame_campos_container'):
+                try:
+                    c = self.frame_campos_container.canvas
+                    c.update_idletasks()
+                    c.configure(scrollregion=c.bbox("all"))
+                    c.yview_moveto(0.0)
+                except Exception:
+                    pass
             return
         
         for i, campo in enumerate(campos):
             self.crear_campo_formulario(campo, i)
+
+        # Después de añadir todos los campos, forzar recálculo del scrollregion
+        if hasattr(self, 'frame_campos_container'):
+            try:
+                c = self.frame_campos_container.canvas
+                # asegurar que se actualice layout antes de calcular bbox
+                c.update_idletasks()
+                bbox = c.bbox("all")
+                if bbox:
+                    c.configure(scrollregion=bbox)
+                c.yview_moveto(0.0)  # colocar al inicio
+            except Exception as e:
+                print(f"[DEBUG] error actualizando scrollregion: {e}")
     
     def crear_campo_formulario(self, campo, index):
         frame_campo = ttk.Frame(self.frame_campos)
@@ -588,39 +753,44 @@ class SistemaPlantillasPersonalizadas:
         label.pack(side="left", padx=(0, 15))
         
         campo_id = campo['id']
-        if campo['tipo'] == 'texto':
+        tipo = campo.get('tipo', 'texto')
+        if tipo == 'texto':
             widget = ttk.Entry(frame_campo, width=50, font=("Arial", 9))
             widget.pack(side="left", fill="x", expand=True)
-            
-        elif campo['tipo'] == 'textarea':
+
+        elif tipo == 'textarea':
             frame_text = ttk.Frame(frame_campo)
             frame_text.pack(side="left", fill="x", expand=True)
-            
+
             widget = tk.Text(frame_text, width=60, height=4, wrap=tk.WORD, font=("Arial", 9))
             scrollbar = ttk.Scrollbar(frame_text, orient="vertical", command=widget.yview)
             widget.configure(yscrollcommand=scrollbar.set)
-            
+
             widget.pack(side="left", fill="both", expand=True)
             scrollbar.pack(side="right", fill="y")
-            
-        elif campo['tipo'] == 'seleccion':
+
+        elif tipo == 'seleccion':
             widget = ttk.Combobox(frame_campo, width=48, values=campo.get('opciones', []), font=("Arial", 9))
             widget.pack(side="left", fill="x", expand=True)
-            
-        elif campo['tipo'] == 'fecha':
+
+        elif tipo == 'fecha':
             widget = ttk.Entry(frame_campo, width=25, font=("Arial", 9))
             widget.pack(side="left")
             ttk.Label(frame_campo, text="(DD/MM/AAAA)", font=("Arial", 8), foreground="gray").pack(side="left", padx=(5, 0))
-        
+        else:
+            # Tipo de campo no reconocido: usar una entrada de texto básica
+            widget = ttk.Entry(frame_campo, width=50, font=("Arial", 9))
+            widget.pack(side="left", fill="x", expand=True)
+
         if campo.get('descripcion'):
             self.crear_tooltip(label, campo['descripcion'])
-        
+
         self.campos_ui[campo_id] = {
             'widget': widget,
             'label': campo['nombre'],
             'requerido': campo.get('requerido', False)
         }
-    
+
     def crear_tooltip(self, widget, text):
         def on_enter(event):
             tooltip = tk.Toplevel()
@@ -745,15 +915,15 @@ Documento origen: {plantilla.get('documento_origen', 'N/A')}
 
 CAMPOS PERSONALIZADOS:
 """
-                campos = plantilla.get('campos_personalizados', [])
-                for i, campo in enumerate(campos, 1):
-                    requerido = "SÍ" if campo.get('requerido') else "no"
-                    detalles += f"\n{i}. {campo['nombre']} ({campo['tipo']}) - Requerido: {requerido}"
-                    if campo.get('descripcion'):
-                        detalles += f"\n   Descripción: {campo['descripcion']}"
-                
-                self.texto_detalles.delete("1.0", tk.END)
-                self.texto_detalles.insert("1.0", detalles)
+            campos = plantilla.get('campos_personalizados', [])
+            for i, campo in enumerate(campos, 1):
+                requerido = "SÍ" if campo.get('requerido') else "no"
+                detalles += f"\n{i}. {campo['nombre']} ({campo['tipo']}) - Requerido: {requerido}"
+                if campo.get('descripcion'):
+                    detalles += f"\n   Descripción: {campo['descripcion']}"
+            
+            self.texto_detalles.delete("1.0", tk.END)
+            self.texto_detalles.insert("1.0", detalles)
         else:
             messagebox.showwarning("Advertencia", "Seleccione una plantilla de la lista.")
     
@@ -801,160 +971,117 @@ class EditorPlantillasDesdeMinuta:
         if plantilla_existente:
             self.cargar_plantilla_existente(plantilla_existente)
     
+
     def configurar_interfaz(self):
-        # Contenido principal dentro del frame scrollable
-        main_content = ttk.Frame(self.main_scrollable.scrollable_frame, padding="20")
-        main_content.pack(fill="both", expand=True)
-        
-        # Header
-        header_frame = ttk.Frame(main_content)
-        header_frame.pack(fill="x", pady=(0, 20))
-        
-        titulo = ttk.Label(header_frame, 
-                          text="✏️ Editor de Plantillas - Seleccione Texto para Crear Campos", 
-                          font=("Arial", 16, "bold"),
-                          foreground="#2c3e50")
-        titulo.pack()
-        
-        subtitulo = ttk.Label(header_frame,
-                             text="Seleccione texto en el documento y cree campos personalizados reemplazando con marcadores",
-                             font=("Arial", 11),
-                             foreground="#7f8c8d")
-        subtitulo.pack()
-        
-        # Información básica
-        info_frame = ttk.LabelFrame(main_content, text="Información Básica de la Plantilla", padding="15")
-        info_frame.pack(fill="x", pady=(0, 15))
-        
-        # Grid para información
-        info_grid = ttk.Frame(info_frame)
-        info_grid.pack(fill="x")
-        
-        ttk.Label(info_grid, text="Nombre de la plantilla:", font=("Arial", 10)).grid(row=0, column=0, sticky="w", pady=8)
-        self.entry_nombre = ttk.Entry(info_grid, width=50, font=("Arial", 10))
-        self.entry_nombre.grid(row=0, column=1, sticky="w", pady=8, padx=(10, 0))
-        
-        ttk.Label(info_grid, text="Descripción:", font=("Arial", 10)).grid(row=1, column=0, sticky="w", pady=8)
-        self.entry_descripcion = ttk.Entry(info_grid, width=50, font=("Arial", 10))
-        self.entry_descripcion.grid(row=1, column=1, sticky="w", pady=8, padx=(10, 0))
-        
-        ttk.Label(info_grid, text="Tipo:", font=("Arial", 10)).grid(row=2, column=0, sticky="w", pady=8)
-        self.combo_tipo = ttk.Combobox(info_grid, width=47, font=("Arial", 10),
-                                      values=["Amparo", "Contrato", "Demanda", "Recurso", "General", "Solicitud"])
-        self.combo_tipo.grid(row=2, column=1, sticky="w", pady=8, padx=(10, 0))
+        cont = ttk.Frame(self.main_scrollable.scrollable_frame, padding=35)
+        cont.pack(fill="both", expand=True)
+
+        header = ttk.Frame(cont)
+        header.pack(fill="x", pady=(0, 25))
+
+        ttk.Label(
+            header,
+            text="Editor de Plantillas",
+            font=("Segoe UI", 22, "bold")
+        ).pack(anchor="w")
+
+        ttk.Label(
+            header,
+            text="Seleccione texto y conviértalo en campos personalizados.",
+            font=("Segoe UI", 11)
+        ).pack(anchor="w", pady=(4, 0))
+
+        info = ttk.LabelFrame(cont, text="Información de plantilla", padding=20)
+        info.pack(fill="x", pady=(0, 25))
+
+        grid = ttk.Frame(info)
+        grid.pack(fill="x")
+
+        ttk.Label(grid, text="Nombre:", font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="w")
+        self.entry_nombre = ttk.Entry(grid, width=50)
+        self.entry_nombre.grid(row=0, column=1, padx=15, pady=6)
+
+        ttk.Label(grid, text="Descripción:", font=("Segoe UI", 10, "bold")).grid(row=1, column=0, sticky="w")
+        self.entry_descripcion = ttk.Entry(grid, width=50)
+        self.entry_descripcion.grid(row=1, column=1, padx=15, pady=6)
+
+        ttk.Label(grid, text="Tipo:", font=("Segoe UI", 10, "bold")).grid(row=2, column=0, sticky="w")
+        self.combo_tipo = ttk.Combobox(grid, width=48,
+                                       values=["Amparo", "Contrato", "Demanda", "Recurso", "General", "Solicitud"])
+        self.combo_tipo.grid(row=2, column=1, padx=15, pady=6)
         self.combo_tipo.set("General")
-        
-        # Área de trabajo dividida
-        workspace_frame = ttk.Frame(main_content)
-        workspace_frame.pack(fill="both", expand=True, pady=(0, 15))
-        
-        # Panel izquierdo - Contenido de la minuta
-        left_panel = ttk.LabelFrame(workspace_frame, text="📄 Contenido de la Minuta Base", padding="15")
-        left_panel.pack(side="left", fill="both", expand=True, padx=(0, 10))
-        
-        instrucciones = ttk.Label(left_panel, 
-                 text="Seleccione texto y haga clic en 'Crear Campo' para reemplazar con marcadores", 
-                 font=("Arial", 9, "italic"))
-        instrucciones.pack(anchor="w", pady=(0, 10))
-        
+
+        workspace = ttk.Panedwindow(cont, orient=tk.HORIZONTAL)
+        workspace.pack(fill="both", expand=True)
+
+        left = ttk.LabelFrame(workspace, text="Minuta base", padding=20)
+        right = ttk.LabelFrame(workspace, text="Campos personalizados", padding=20)
+
+        # Agregar paneles al PanedWindow (arrastrables)
+        workspace.add(left, weight=3)
+        workspace.add(right, weight=1)
+
         self.texto_minuta = scrolledtext.ScrolledText(
-            left_panel, 
-            wrap=tk.WORD, 
-            font=("Consolas", 10)
+            left,
+            wrap="word",
+            font=("Consolas", 11),
+            background="#ffffff",
+            relief="flat",
+            borderwidth=1,
+            padx=15,
+            pady=15
         )
         self.texto_minuta.pack(fill="both", expand=True)
-        
+
         if self.contenido_minuta:
             self.texto_minuta.insert("1.0", self.contenido_minuta)
-        
+
+        # Tag para marcadores persistentes y tag para selección activa (temporal)
         self.texto_minuta.tag_configure("seleccionado", background="lightgreen", foreground="darkgreen")
-        # Detectar selección usando eventos de ratón y teclado (<<Selection>> no siempre se dispara)
+        self.texto_minuta.tag_configure("sel_activa", background="#e6f7d9")
+        # Mantener registro de selección y mostrarla visualmente mientras el usuario la mantiene
         self.texto_minuta.bind("<ButtonRelease-1>", self.guardar_seleccion_actual)
         self.texto_minuta.bind("<KeyRelease>", self.guardar_seleccion_actual)
-        
-        # Panel derecho - Configuración de campos
-        right_panel = ttk.LabelFrame(workspace_frame, text="⚙️ Configuración de Campos Personalizados", padding="15")
-        right_panel.pack(side="right", fill="both", expand=True)
-        
-        # Instrucciones
-        instrucciones_frame = ttk.Frame(right_panel)
-        instrucciones_frame.pack(fill="x", pady=(0, 15))
-        
-        ttk.Label(instrucciones_frame, 
-                 text="Cómo crear campos personalizados:", 
-                 font=("Arial", 11, "bold")).pack(anchor="w")
-        
-        instrucciones_texto = ttk.Label(instrucciones_frame, 
-                                text="1. Seleccione texto en la minuta\n"
-                                     "2. Haga clic en 'Crear Campo desde Selección'\n"
-                                     "3. Configure las propiedades del campo\n"
-                                     "4. El texto se reemplazará automáticamente con [[ID_CAMPO]]",
-                                font=("Arial", 9), 
-                                justify="left")
-        instrucciones_texto.pack(anchor="w", pady=(5, 0))
-        
-        # Botones de acción
-        action_buttons = ttk.Frame(right_panel)
-        action_buttons.pack(fill="x", pady=10)
-        
-        ttk.Button(action_buttons, 
-                  text="📍 Crear Campo desde Selección Actual", 
-                  command=self.crear_campo_desde_seleccion,
-                  width=28).pack(side="left", padx=(0, 10))
-        
-        ttk.Button(action_buttons, 
-                  text="➕ Agregar Campo Manualmente", 
-                  command=self.agregar_campo_manual,
-                  width=22).pack(side="left")
-        
-        # Lista de campos creados
-        campos_frame = ttk.LabelFrame(right_panel, text="Campos Creados", padding="10")
-        campos_frame.pack(fill="both", expand=True, pady=(0, 10))
-        
-        list_container = ttk.Frame(campos_frame)
-        list_container.pack(fill="both", expand=True)
-        
-        self.lista_campos = tk.Listbox(list_container, height=8, font=("Arial", 10))
-        self.lista_campos.pack(side="left", fill="both", expand=True)
-        
-        scroll_campos = ttk.Scrollbar(list_container, orient="vertical", command=self.lista_campos.yview)
-        scroll_campos.pack(side="right", fill="y")
-        self.lista_campos.configure(yscrollcommand=scroll_campos.set)
-        
-        # Botones de gestión de campos
-        manage_buttons = ttk.Frame(right_panel)
-        manage_buttons.pack(fill="x", pady=5)
-        
-        ttk.Button(manage_buttons, 
-                  text="📝 Editar Campo Seleccionado", 
-                  command=self.editar_campo,
-                  width=20).pack(side="left", padx=(0, 10))
-        
-        ttk.Button(manage_buttons, 
-                  text="🗑️ Eliminar Campo Seleccionado", 
-                  command=self.eliminar_campo,
-                  width=20).pack(side="left")
-        
-        # Botones finales
-        final_buttons = ttk.Frame(main_content)
-        final_buttons.pack(fill="x", pady=10)
-        
-        ttk.Button(final_buttons, 
-                  text="💾 Guardar Plantilla", 
-                  command=self.guardar_plantilla,
-                  width=20).pack(side="left", padx=(0, 15))
-        
-        ttk.Button(final_buttons, 
-                  text="🔍 Vista Previa de Marcadores", 
-                  command=self.mostrar_vista_previa,
-                  width=22).pack(side="left", padx=(0, 15))
-        
-        ttk.Button(final_buttons, 
-                  text="❌ Cancelar y Salir", 
-                  command=self.ventana.destroy,
-                  width=16).pack(side="left")
 
-    # Los métodos de funcionalidad se mantienen igual...
+        ttk.Button(right, text="Crear campo desde selección",
+                   style="Notion.TButton", command=self.crear_campo_desde_seleccion).pack(fill="x", pady=6)
+        ttk.Button(right, text="Agregar campo manual",
+                   style="Notion.TButton", command=self.agregar_campo_manual).pack(fill="x", pady=6)
+
+        lista = ttk.Frame(right)
+        lista.pack(fill="both", expand=True, pady=(15, 0))
+
+        self.lista_campos = tk.Listbox(
+            lista,
+            height=10,
+            font=("Segoe UI", 10),
+            highlightthickness=1,
+            relief="flat"
+        )
+        self.lista_campos.pack(side="left", fill="both", expand=True)
+
+        scroll = ttk.Scrollbar(lista, orient="vertical", command=self.lista_campos.yview)
+        scroll.pack(side="right", fill="y")
+        self.lista_campos.configure(yscrollcommand=scroll.set)
+
+        botones = ttk.Frame(right)
+        botones.pack(fill="x", pady=10)
+
+        ttk.Button(botones, text="Editar", style="Notion.TButton",
+                   command=self.editar_campo).pack(side="left", padx=5)
+        ttk.Button(botones, text="Eliminar", style="Notion.TButton",
+                   command=self.eliminar_campo).pack(side="left", padx=5)
+
+        final = ttk.Frame(cont)
+        final.pack(fill="x", pady=25)
+
+        ttk.Button(final, text="Guardar plantilla",
+                   style="Notion.TButton", command=self.guardar_plantilla).pack(side="left", padx=8)
+        ttk.Button(final, text="Vista previa de marcadores",
+                   style="Notion.TButton", command=self.mostrar_vista_previa).pack(side="left", padx=8)
+        ttk.Button(final, text="Cerrar",
+                   style="Notion.TButton", command=self.ventana.destroy).pack(side="left", padx=8)
+
     def guardar_seleccion_actual(self, event=None):
         try:
             # Obtener rangos reales de la selección y almacenarlos como índices de texto
@@ -1174,97 +1301,82 @@ class DialogoCampoDesdeSeleccion:
         if campo_existente:
             self.cargar_datos_existentes(campo_existente)
     
+
     def configurar_interfaz(self):
-        # Contenido principal dentro del frame scrollable
-        main_content = ttk.Frame(self.dialog_scrollable.scrollable_frame, padding="20")
-        main_content.pack(fill="both", expand=True)
-        
-        ttk.Label(main_content, 
-                 text="⚙️ Configurar Campo Personalizado", 
-                 font=("Arial", 14, "bold")).pack(pady=(0, 20))
-        
+        cont = ttk.Frame(self.dialog_scrollable.scrollable_frame, padding=30)
+        cont.pack(fill="both", expand=True)
+
+        ttk.Label(
+            cont,
+            text="Configurar Campo",
+            font=("Segoe UI", 18, "bold")
+        ).pack(anchor="w", pady=(0, 20))
+
         if self.texto_seleccionado:
-            frame_texto = ttk.LabelFrame(main_content, text="Texto Seleccionado", padding="10")
-            frame_texto.pack(fill="x", pady=10)
-            
-            label_texto = ttk.Label(frame_texto, text=self.texto_seleccionado, 
-                                   wraplength=500, font=("Arial", 10), background="lightyellow")
-            label_texto.pack(fill="x")
-        
-        # Configuración del campo
-        config_frame = ttk.LabelFrame(main_content, text="Propiedades del Campo", padding="15")
-        config_frame.pack(fill="both", expand=True, pady=10)
-        
-        # ID del campo
-        ttk.Label(config_frame, text="ID del campo (interno):", font=("Arial", 10)).grid(row=0, column=0, sticky="w", pady=8)
-        self.entry_id = ttk.Entry(config_frame, width=30, font=("Arial", 10))
-        self.entry_id.grid(row=0, column=1, sticky="w", pady=8, padx=(10, 0))
-        ttk.Label(config_frame, text="(sin espacios, único)", font=("Arial", 9), foreground="gray").grid(row=0, column=2, sticky="w", pady=8, padx=(5, 0))
-        
-        # Nombre del campo
-        ttk.Label(config_frame, text="Nombre visible:", font=("Arial", 10)).grid(row=1, column=0, sticky="w", pady=8)
-        self.entry_nombre = ttk.Entry(config_frame, width=30, font=("Arial", 10))
-        self.entry_nombre.grid(row=1, column=1, sticky="w", pady=8, padx=(10, 0))
-        
-        if self.texto_seleccionado and not self.campo_existente:
-            nombre_sugerido = self.texto_seleccionado.strip()[:30]
-            self.entry_nombre.insert(0, nombre_sugerido)
-            
-            id_sugerido = re.sub(r'[^a-zA-Z0-9_]', '_', nombre_sugerido.lower())
-            self.entry_id.insert(0, id_sugerido)
-        
-        # Tipo de campo
-        ttk.Label(config_frame, text="Tipo de campo:", font=("Arial", 10)).grid(row=2, column=0, sticky="w", pady=8)
-        
-        tipo_frame = ttk.Frame(config_frame)
-        tipo_frame.grid(row=2, column=1, columnspan=2, sticky="w", pady=8, padx=(10, 0))
-        
+            marco = ttk.LabelFrame(cont, text="Texto seleccionado", padding=15)
+            marco.pack(fill="x", pady=10)
+
+            ttk.Label(
+                marco,
+                text=self.texto_seleccionado,
+                background="#ffffff",
+                wraplength=500,
+                font=("Segoe UI", 10)
+            ).pack(fill="x")
+
+        panel = ttk.LabelFrame(cont, text="Propiedades del campo", padding=20)
+        panel.pack(fill="both", expand=True, pady=(10, 20))
+
+        grid = ttk.Frame(panel)
+        grid.pack(fill="x")
+
+        ttk.Label(grid, text="ID:", font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="w", pady=5)
+        self.entry_id = ttk.Entry(grid, width=40)
+        self.entry_id.grid(row=0, column=1, pady=5, padx=10)
+
+        ttk.Label(grid, text="Nombre visible:", font=("Segoe UI", 10, "bold")).grid(row=1, column=0, sticky="w", pady=5)
+        self.entry_nombre = ttk.Entry(grid, width=40)
+        self.entry_nombre.grid(row=1, column=1, pady=5, padx=10)
+
+        ttk.Label(grid, text="Tipo:", font=("Segoe UI", 10, "bold")).grid(row=2, column=0, sticky="nw", pady=5)
+
+        tipos = ttk.Frame(grid)
+        tipos.grid(row=2, column=1, sticky="w", pady=5, padx=10)
+
         self.tipo_var = tk.StringVar(value="texto")
-        
-        tk.Radiobutton(tipo_frame, text="Texto corto", variable=self.tipo_var, value="texto", 
-                      font=("Arial", 10)).pack(anchor="w", pady=2)
-        tk.Radiobutton(tipo_frame, text="Texto largo", variable=self.tipo_var, value="textarea", 
-                      font=("Arial", 10)).pack(anchor="w", pady=2)
-        tk.Radiobutton(tipo_frame, text="Selección", variable=self.tipo_var, value="seleccion", 
-                      font=("Arial", 10)).pack(anchor="w", pady=2)
-        tk.Radiobutton(tipo_frame, text="Fecha", variable=self.tipo_var, value="fecha", 
-                      font=("Arial", 10)).pack(anchor="w", pady=2)
-        
-        # Opciones para selección
-        self.frame_opciones = ttk.LabelFrame(config_frame, text="Opciones de Selección", padding="10")
-        self.frame_opciones.grid(row=3, column=0, columnspan=3, sticky="we", pady=10)
-        
-        ttk.Label(self.frame_opciones, text="Una opción por línea:", font=("Arial", 9)).pack(anchor="w")
-        self.texto_opciones = tk.Text(self.frame_opciones, height=6, width=50, font=("Arial", 9))
-        self.texto_opciones.pack(fill="x", pady=5)
-        
-        # Descripción
-        ttk.Label(config_frame, text="Descripción/tooltip:", font=("Arial", 10)).grid(row=4, column=0, sticky="w", pady=8)
-        self.entry_descripcion = ttk.Entry(config_frame, width=30, font=("Arial", 10))
-        self.entry_descripcion.grid(row=4, column=1, columnspan=2, sticky="we", pady=8, padx=(10, 0))
-        
-        # Campo requerido
-        requerido_frame = ttk.Frame(config_frame)
-        requerido_frame.grid(row=5, column=0, columnspan=3, sticky="w", pady=15)
-        
+
+        tk.Radiobutton(tipos, text="Texto corto", variable=self.tipo_var, value="texto",
+                       font=("Segoe UI", 10)).pack(anchor="w")
+        tk.Radiobutton(tipos, text="Texto largo", variable=self.tipo_var, value="textarea",
+                       font=("Segoe UI", 10)).pack(anchor="w")
+        tk.Radiobutton(tipos, text="Selección", variable=self.tipo_var, value="seleccion",
+                       font=("Segoe UI", 10)).pack(anchor="w")
+        tk.Radiobutton(tipos, text="Fecha", variable=self.tipo_var, value="fecha",
+                       font=("Segoe UI", 10)).pack(anchor="w")
+
+        self.frame_opciones = ttk.LabelFrame(panel, text="Opciones (para selección)", padding=15)
+        self.frame_opciones.pack(fill="x", pady=15)
+
+        self.texto_opciones = tk.Text(self.frame_opciones, height=6, font=("Segoe UI", 10),
+                                      relief="flat", borderwidth=1, padx=10, pady=10)
+        self.texto_opciones.pack(fill="x")
+
+        ttk.Label(panel, text="Descripción:", font=("Segoe UI", 10, "bold")).pack(anchor="w", pady=(10, 0))
+        self.entry_descripcion = ttk.Entry(panel, width=50)
+        self.entry_descripcion.pack(fill="x", pady=10)
+
         self.requerido_var = tk.BooleanVar(value=True)
-        tk.Checkbutton(requerido_frame, text="Campo requerido", 
-                      variable=self.requerido_var, font=("Arial", 10)).pack(anchor="w")
-        
-        # Botones
-        botones_frame = ttk.Frame(main_content)
-        botones_frame.pack(fill="x", pady=10)
-        
-        ttk.Button(botones_frame, 
-                  text="💾 Guardar Campo", 
-                  command=self.guardar_campo,
-                  width=16).pack(side="left", padx=(0, 10))
-        
-        ttk.Button(botones_frame, 
-                  text="❌ Cancelar", 
-                  command=self.ventana.destroy,
-                  width=12).pack(side="left")
-    
+        tk.Checkbutton(panel, text="Campo requerido", variable=self.requerido_var,
+                       font=("Segoe UI", 10)).pack(anchor="w", pady=5)
+
+        btns = ttk.Frame(cont)
+        btns.pack(fill="x")
+
+        ttk.Button(btns, text="Guardar", style="Notion.TButton",
+                   command=self.guardar_campo).pack(side="left", padx=8)
+        ttk.Button(btns, text="Cancelar", style="Notion.TButton",
+                   command=self.ventana.destroy).pack(side="left", padx=8)
+
     def cargar_datos_existentes(self, campo):
         self.entry_id.insert(0, campo.get('id', ''))
         self.entry_id.config(state='disabled')
@@ -1332,6 +1444,5 @@ def verificar_dependencias():
         return False
 
 if __name__ == "__main__":
-    if verificar_dependencias():
-        app = SistemaPlantillasPersonalizadas()
-        app.root.mainloop()
+    app = SistemaPlantillasPersonalizadas()
+    app.root.mainloop()
